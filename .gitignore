@@ -150,11 +150,12 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-tmp/
-
 # thirdparty repo
 mmdetection3d
 
 # custom
 work_dirs
 run.sh
+tmp/
+val
+.vscode
