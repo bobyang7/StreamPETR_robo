@@ -1,0 +1,1 @@
+/share-global/zhe.wang2/data/nuscenes/nuscenes/v1.0-trainval/nuscenes2d_temporal_infos_train.pkl

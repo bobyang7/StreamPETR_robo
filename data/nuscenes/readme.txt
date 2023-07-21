@@ -1,0 +1,1 @@
+/share-global/jin.chen4/nuscenes/v1.0-trainval/readme.txt
