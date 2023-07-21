@@ -39,7 +39,5 @@ dev: venv
 	${PIPRUN} pip install mmdet==2.28.2 -c env/constraint.txt
 	${PIPRUN} pip install https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/mmcv_full-1.6.0-cp38-cp38-manylinux1_x86_64.whl
 	${PIPRUN} pip install mmsegmentation==0.30.0 -c env/constraint.txt
-	-[ ! -d "mmdetection3d" ] && git clone https://github.com/open-mmlab/mmdetection3d.git
-	pushd mmdetection3d >/dev/null 2>&1 && git checkout v1.0.0rc6 && popd >/dev/null 2>&1
 	${PIPRUN} pip install -e mmdetection3d -c env/constraint.txt
 	${PIPRUN} pip install flash-attn==0.2.2 --no-build-isolation --no-cache-dir

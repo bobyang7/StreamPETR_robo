@@ -150,7 +150,9 @@ dmypy.json
 cython_debug/
 
 # thirdparty repo
-mmdetection3d
+mmdetection3d/.git
+mmdetection3d/.github
+mmdetection3d/.venv
 
 # custom
 work_dirs
