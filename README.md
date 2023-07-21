@@ -11,6 +11,21 @@
   <img src="figs/framework.png" width="800"/>
 </div><br/>
 
+## Getting Started @ NIO
+1. Environment Setup.
+  - make dev
+2. Data Preparation.
+ - Do nothing except check [**data**](./data/nuscenes).
+3. [**Training and Inference.**](./docs/training_inference.md)
+
+
+## Reproduce Result
+|  | Model | Training Time| NDS | mAP |
+| :---: | :---: | :---: | :---: | :---:|
+|Announced| [R50 - 428q](projects/configs/StreamPETR/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e.py) | 26 hours | 54.6 | 44.9 |
+|Reproduce| [R50 - 428q](projects/configs/StreamPETR/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e.py) | 9 hours | 54.2 | 44.2 |
+
+
 ## Introduction
 
 This repository is an official implementation of StreamPETR.
