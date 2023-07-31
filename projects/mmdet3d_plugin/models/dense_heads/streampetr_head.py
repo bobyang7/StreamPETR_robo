@@ -328,7 +328,7 @@ class StreamPETRHead(AnchorFreeHead):
             self.memory_velo = x.new_zeros(B, self.memory_len, 2)
         else:
             self.memory_timestamp += data['timestamp'].unsqueeze(-1).unsqueeze(-1)
-            self.memory_egopose = data['ego_pose_inv'].unsqueeze(1) @ self.memory_egopose
+            self.memory_egopose = data['ego_pose_inv'].unsqueeze(1) @ self.memory_egopose  # ego_pose: lidar2global, ego_pose_inv: global2lidar, (B, 4, 4)
             self.memory_reference_point = transform_reference_points(self.memory_reference_point, data['ego_pose_inv'], reverse=False)
             self.memory_timestamp = memory_refresh(self.memory_timestamp[:, :self.memory_len], x)
             self.memory_reference_point = memory_refresh(self.memory_reference_point[:, :self.memory_len], x)
@@ -392,28 +392,28 @@ class StreamPETRHead(AnchorFreeHead):
         D = self.coords_d.shape[0]
 
         memory_centers = memory_centers.detach().view(B, LEN, 1, 2)
-        topk_centers = topk_gather(memory_centers, topk_indexes).repeat(1, 1, D, 1)
-        coords_d = self.coords_d.view(1, 1, D, 1).repeat(B, num_sample_tokens, 1 , 1)
-        coords = torch.cat([topk_centers, coords_d], dim=-1)
-        coords = torch.cat((coords, torch.ones_like(coords[..., :1])), -1)
-        coords[..., :2] = coords[..., :2] * torch.maximum(coords[..., 2:3], torch.ones_like(coords[..., 2:3])*eps)
+        topk_centers = topk_gather(memory_centers, topk_indexes).repeat(1, 1, D, 1)  # (B, LEN, D, 2)
+        coords_d = self.coords_d.view(1, 1, D, 1).repeat(B, num_sample_tokens, 1 , 1)  # (B, LEN, D, 1)
+        coords = torch.cat([topk_centers, coords_d], dim=-1)  # (B, LEN, D, 3)
+        coords = torch.cat((coords, torch.ones_like(coords[..., :1])), -1)  # (B, LEN, D, 4)
+        coords[..., :2] = coords[..., :2] * torch.maximum(coords[..., 2:3], torch.ones_like(coords[..., 2:3])*eps)  # (u*z, v*z, z, 1)
 
-        coords = coords.unsqueeze(-1)
+        coords = coords.unsqueeze(-1)  # (B, LEN, D, 4, 1)
 
         img2lidars = data['lidar2img'].inverse()
         img2lidars = img2lidars.view(BN, 1, 1, 4, 4).repeat(1, H*W, D, 1, 1).view(B, LEN, D, 4, 4)
         img2lidars = topk_gather(img2lidars, topk_indexes)
 
-        coords3d = torch.matmul(img2lidars, coords).squeeze(-1)[..., :3]
-        coords3d[..., 0:3] = (coords3d[..., 0:3] - self.position_range[0:3]) / (self.position_range[3:6] - self.position_range[0:3])
-        coords3d = coords3d.reshape(B, -1, D*3)
+        coords3d = torch.matmul(img2lidars, coords).squeeze(-1)[..., :3]  # (B, LEN, D, 3) in lidar coord
+        coords3d[..., 0:3] = (coords3d[..., 0:3] - self.position_range[0:3]) / (self.position_range[3:6] - self.position_range[0:3])  # norm coord in lidar to 0~1
+        coords3d = coords3d.reshape(B, -1, D*3)  # (B, LEN, D*3), 0~1 norm
       
-        pos_embed  = inverse_sigmoid(coords3d)
-        coords_position_embeding = self.position_encoder(pos_embed)
+        pos_embed  = inverse_sigmoid(coords3d)  # why use inverse_sigmoid
+        coords_position_embeding = self.position_encoder(pos_embed)  # (B, LEN, embed_dims)
         intrinsic = topk_gather(intrinsic, topk_indexes)
 
         # for spatial alignment in focal petr
-        cone = torch.cat([intrinsic, coords3d[..., -3:], coords3d[..., -90:-87]], dim=-1)
+        cone = torch.cat([intrinsic, coords3d[..., -3:], coords3d[..., -90:-87]], dim=-1)  # select two points along tracing ray (B, LEN, 2+6), (fx, fy, x1,y1,z1, x2,y2,z2)
 
         return coords_position_embeding, cone
 
@@ -478,25 +478,26 @@ class StreamPETRHead(AnchorFreeHead):
                 known_bbox_center += torch.mul(rand_prob,
                                             diff) * self.bbox_noise_scale
                 known_bbox_center[..., 0:3] = (known_bbox_center[..., 0:3] - self.pc_range[0:3]) / (self.pc_range[3:6] - self.pc_range[0:3])
+                # reference_points are also initialized in range [0, 1]
 
                 known_bbox_center = known_bbox_center.clamp(min=0.0, max=1.0)
-                mask = torch.norm(rand_prob, 2, 1) > self.split
+                mask = torch.norm(rand_prob, 2, 1) > self.split  # ignore too large aug
                 known_labels[mask] = self.num_classes
             
-            single_pad = int(max(known_num))
-            pad_size = int(single_pad * self.scalar)
-            padding_bbox = torch.zeros(pad_size, 3).to(reference_points.device)
-            padded_reference_points = torch.cat([padding_bbox, reference_points], dim=0).unsqueeze(0).repeat(batch_size, 1, 1)
+            single_pad = int(max(known_num))  # pad to max gt num
+            pad_size = int(single_pad * self.scalar)  # noised gt
+            padding_bbox = torch.zeros(pad_size, 3).to(reference_points.device)  # (max_gt_num * scalar, 3)
+            padded_reference_points = torch.cat([padding_bbox, reference_points], dim=0).unsqueeze(0).repeat(batch_size, 1, 1)  # (bs, max_gt_num*scalar + 300, 3)
 
             if len(known_num):
                 map_known_indice = torch.cat([torch.tensor(range(num)) for num in known_num])  # [1,2, 1,2,3]
-                map_known_indice = torch.cat([map_known_indice + single_pad * i for i in range(self.scalar)]).long()
+                map_known_indice = torch.cat([map_known_indice + single_pad * i for i in range(self.scalar)]).long()  # inserted indices(0~max_gt_num*scalar) for each gt box in each sample considering its repeatance
             if len(known_bid):
-                padded_reference_points[(known_bid.long(), map_known_indice)] = known_bbox_center.to(reference_points.device)
+                padded_reference_points[(known_bid.long(), map_known_indice)] = known_bbox_center.to(reference_points.device)  # there exists zero padding ref points
 
             tgt_size = pad_size + self.num_query
             attn_mask = torch.ones(tgt_size, tgt_size).to(reference_points.device) < 0
-            # match query cannot see the reconstruct
+            # match query cannot see the reconstruct, since in inference there is no gt, attention should not dependant on input gt
             attn_mask[pad_size:, :pad_size] = True
             # reconstruct cannot see each other
             for i in range(self.scalar):
@@ -514,10 +515,10 @@ class StreamPETRHead(AnchorFreeHead):
             temporal_attn_mask = torch.ones(query_size, tgt_size).to(reference_points.device) < 0
             temporal_attn_mask[:attn_mask.size(0), :attn_mask.size(1)] = attn_mask 
             temporal_attn_mask[pad_size:, :pad_size] = True
-            attn_mask = temporal_attn_mask
+            attn_mask = temporal_attn_mask  # modify here when traing single-frame model
 
             mask_dict = {
-                'known_indice': torch.as_tensor(known_indice).long(),
+                'known_indice': torch.as_tensor(known_indice).long(),  # [range(all_gt_num)] * scalar
                 'batch_idx': torch.as_tensor(batch_idx).long(),
                 'map_known_indice': torch.as_tensor(map_known_indice).long(),
                 'known_lbs_bboxes': (known_labels, known_bboxs),
@@ -586,18 +587,18 @@ class StreamPETRHead(AnchorFreeHead):
         memory = x.permute(0, 1, 3, 4, 2).reshape(B, num_tokens, C)
         memory = topk_gather(memory, topk_indexes)
 
-        pos_embed, cone = self.position_embeding(data, memory_center, topk_indexes, img_metas)
+        pos_embed, cone = self.position_embeding(data, memory_center, topk_indexes, img_metas)  # (B, LEN, embed_dims), (B, LEN, 2+6)
 
-        memory = self.memory_embed(memory)
+        memory = self.memory_embed(memory)  # 2d feature, (B, LEN, embed_dims)
 
-        # spatial_alignment in focal petr
-        memory = self.spatial_alignment(memory, cone)
-        pos_embed = self.featurized_pe(pos_embed, memory)
+        # spatial_alignment in focal petr, why not just use pos_embed?
+        memory = self.spatial_alignment(memory, cone)  # see focal petr
+        pos_embed = self.featurized_pe(pos_embed, memory)  # se channel attention
 
         reference_points = self.reference_points.weight
         reference_points, attn_mask, mask_dict = self.prepare_for_dn(B, reference_points, img_metas)
-        query_pos = self.query_embedding(pos2posemb3d(reference_points))
-        tgt = torch.zeros_like(query_pos)
+        query_pos = self.query_embedding(pos2posemb3d(reference_points))  # (bs, max_gt_num*scalar + 300, embed_dims)
+        tgt = torch.zeros_like(query_pos)  # query_context
 
         # prepare for the tgt and query_pos using mln.
         tgt, query_pos, reference_points, temp_memory, temp_pos, rec_ego_pose = self.temporal_alignment(query_pos, tgt, reference_points)
