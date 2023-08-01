@@ -110,6 +110,7 @@ class Petr3D(MVXTwoStageDetector):
                             depths=None,
                             gt_bboxes_ignore=None,
                             **data):
+        # gt_bboxes_3d: [[gt_boxes] * bs] * T
         losses = dict()
         T = data['img'].size(1)
         num_nograd_frames = T - self.num_frame_head_grads
@@ -179,6 +180,7 @@ class Petr3D(MVXTwoStageDetector):
         if not requires_grad:
             self.eval()
             with torch.no_grad():
+                # why here dose not need execute forward_roi_head?
                 outs = self.pts_bbox_head(location, img_metas, None, **data)
             self.train()
 

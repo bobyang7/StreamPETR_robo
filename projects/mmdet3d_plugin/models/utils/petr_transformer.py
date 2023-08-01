@@ -708,7 +708,7 @@ class PETRTemporalDecoderLayer(BaseModule):
                 if temp_memory is not None:
                     temp_key = temp_value = torch.cat([query, temp_memory], dim=0)
                     temp_pos = torch.cat([query_pos, temp_pos], dim=0)
-                else:
+                else:  # single frame with propagted query
                     temp_key = temp_value = query
                     temp_pos = query_pos
                 query = self.attentions[attn_index](
