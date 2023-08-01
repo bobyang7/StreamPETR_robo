@@ -338,7 +338,10 @@ class StreamPETRHead(AnchorFreeHead):
         
         # for the first frame, padding pseudo_reference_points (non-learnable)
         if self.num_propagated > 0:
-            pseudo_reference_points = self.pseudo_reference_points.weight * (self.pc_range[3:6] - self.pc_range[0:3]) + self.pc_range[0:3]
+            pseudo_reference_points = self.pseudo_reference_points.weight * (self.pc_range[3:6] - self.pc_range[0:3]) + self.pc_range[0:3] # (128, 3)
+            # if x == 1(prev exists is True), self.memory_reference_point and self.memory_egopose remains unchanged
+            # if x == 0(prev exists is False), add pseudo_reference_points or eye top num `self.num_propagated`.
+            # self.pseudo_reference_points is nn.Embedding and not learnable
             self.memory_reference_point[:, :self.num_propagated]  = self.memory_reference_point[:, :self.num_propagated] + (1 - x).view(B, 1, 1) * pseudo_reference_points
             self.memory_egopose[:, :self.num_propagated]  = self.memory_egopose[:, :self.num_propagated] + (1 - x).view(B, 1, 1, 1) * torch.eye(4, device=x.device)
 
