@@ -35,14 +35,27 @@ class CustomNuScenesDataset(NuScenesDataset):
         self.seq_mode = seq_mode
         if seq_mode:
             self.num_frame_losses = 1
-            self.queue_length = 1
-            self.seq_split_num = seq_split_num
+            self.queue_length = 1  # no need to be larger than 1
+            self.seq_split_num = seq_split_num  # the size of a sequence group, can be larger than queue_length
             self.random_length = 0
             self._set_sequence_group_flag() # Must be called after load_annotations b/c load_annotations does sorting.
 
     def _set_sequence_group_flag(self):
         """
         Set each sequence to be a different group
+        1. each group has the same flag and the frames in it belongs to the same clip
+        2. the size of the group is `seq_split_num`
+        3. the queue length in training may be smaller than seq_split_num, thus if seq_split_num
+        is bigger than queue_length, iter i may use iter i-1's memory embedding
+        4. frames in the group of length seq_split_num will share the memory cache, thus the recurrent length is equal to `seq_split_num`
+        5. for the same clip, it will always traverse it sequentially, because frames in the same clip will not be shuffled
+        
+        This paper use `InfiniteGroupEachSampleInBatchSampler`, different batch id on different gpu
+        will take different clips, frames belonging to the same clips won't appear at different batch id on different gpu
+        More details in projects/mmdet3d_plugin/datasets/samplers/group_sampler.py
+        
+        Note: this code is prepared for recurrent mode, then queue_length is 1, and we can change seq_split_num
+        If we modify it to non-recurrent, we should clear memory at each iteration, set queue_length larger than 1 and equal to seq_split_num
         """
         res = []
 
@@ -97,7 +110,7 @@ class CustomNuScenesDataset(NuScenesDataset):
             i = max(0, i)
             input_dict = self.get_data_info(i)
             
-            if not self.seq_mode: # for sliding window only
+            if not self.seq_mode: # for sliding window only, only use in test phase
                 if input_dict['scene_token'] != prev_scene_token:
                     input_dict.update(dict(prev_exists=False))
                     prev_scene_token = input_dict['scene_token']
