@@ -318,8 +318,8 @@ class StreamPETRHead(AnchorFreeHead):
 
     def pre_update_memory(self, data):
         x = data['prev_exists']  # (bs,)
-        # if `prev_exists` is True, current frame is not the first frame in a sub group (length is seq_split_num)
-        # clear the memory when prev_exists is False at corresponding batch id, thus the recurrent length won't exceed `seq_split_num`
+        # if `prev_exists` is True, current frame is not the first frame in a sub group
+        # clear the memory when prev_exists is False at corresponding batch id
         # sometimes the training iter i will use training iter i-1's memory, don't worry,
         # the inputs for iter i and iter i-1 are continuous, because the data sampler only shuffle between clips
         # and donot shuffle frames in the same clip, and different samples in a mini-batch are always from different clips
