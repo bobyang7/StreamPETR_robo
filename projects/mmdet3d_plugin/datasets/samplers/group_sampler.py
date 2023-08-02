@@ -208,8 +208,8 @@ class InfiniteGroupEachSampleInBatchSampler(Sampler):
             yield from torch.randperm(self.groups_num, generator=g).tolist()
 
     def _group_indices_per_global_sample_idx(self, global_sample_idx):
-        yield from itertools.islice(self._infinite_group_indices(), 
-                                    global_sample_idx, 
+        yield from itertools.islice(self._infinite_group_indices(), # shuffled group id list
+                                    global_sample_idx,
                                     None,
                                     self.global_batch_size)
 
@@ -217,7 +217,7 @@ class InfiniteGroupEachSampleInBatchSampler(Sampler):
         while True:
             curr_batch = []
             for local_sample_idx in range(self.batch_size):
-                if len(self.buffer_per_local_sample[local_sample_idx]) == 0:
+                if len(self.buffer_per_local_sample[local_sample_idx]) == 0: # for a new subclip
                     # Finished current group, refill with next group
                     new_group_idx = next(self.group_indices_per_global_sample_idx[local_sample_idx])
                     self.buffer_per_local_sample[local_sample_idx] = \
