@@ -63,7 +63,8 @@ class Petr3D(MVXTwoStageDetector):
 
     def extract_img_feat(self, img, len_queue=1, training_mode=False):
         """Extract features of images."""
-        B = img.size(0)
+        # output's shape is equal to the input's shape
+        B = img.size(0)  # (bs, T', N, C, H, W)
 
         if img is not None:
             if img.dim() == 6:
@@ -91,7 +92,7 @@ class Petr3D(MVXTwoStageDetector):
             img_feats_reshaped = img_feats[self.position_level].view(B, int(BN/B/len_queue), C, H, W)
 
 
-        return img_feats_reshaped
+        return img_feats_reshaped  # (bs, T', N, C, H, W)
 
 
     @auto_fp16(apply_to=('img'), out_fp32=True)
@@ -252,7 +253,7 @@ class Petr3D(MVXTwoStageDetector):
         Returns:
             dict: Losses of different branches.
         """
-        T = data['img'].size(1)
+        T = data['img'].size(1)  # (bs, T, N, C, H, W)
 
         prev_img = data['img'][:, :-self.num_frame_backbone_grads]
         rec_img = data['img'][:, -self.num_frame_backbone_grads:]

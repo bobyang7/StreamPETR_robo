@@ -317,7 +317,12 @@ class StreamPETRHead(AnchorFreeHead):
         self.memory_velo = None
 
     def pre_update_memory(self, data):
-        x = data['prev_exists']  # what dose it mean?
+        x = data['prev_exists']  # (bs,)
+        # if `prev_exists` is True, current frame is not the first frame in a sub group
+        # clear the memory when prev_exists is False at corresponding batch id
+        # sometimes the training iter i will use training iter i-1's memory, don't worry,
+        # the inputs for iter i and iter i-1 are continuous, because the data sampler only shuffle between clips
+        # and donot shuffle frames in the same clip, and different samples in a mini-batch are always from different clips
         B = x.size(0)
         # refresh the memory when the scene changes
         if self.memory_embedding is None:
@@ -327,8 +332,7 @@ class StreamPETRHead(AnchorFreeHead):
             self.memory_egopose = x.new_zeros(B, self.memory_len, 4, 4)
             self.memory_velo = x.new_zeros(B, self.memory_len, 2)
         else:
-            # dose it need clear memory between two iterations?
-            # ego_pose: lidar2global, ego_pose_inv: global2lidar, (B, 4, 4)
+            # ego_pose: lidar2global, ego_pose_inv: global2lidar, (bs, 4, 4)
             # up to here, all memory pose or coord are `to global` or `in global`, then we can use current data's `ego_pose_inv` to convert it
             # memory_timestamp is `- each history timestamp`, then we can get delta t between current timestamp and each history timestamp
             self.memory_timestamp += data['timestamp'].unsqueeze(-1).unsqueeze(-1)  # `current timestamp` + `- each history timestamp`
@@ -415,7 +419,7 @@ class StreamPETRHead(AnchorFreeHead):
         coords3d[..., 0:3] = (coords3d[..., 0:3] - self.position_range[0:3]) / (self.position_range[3:6] - self.position_range[0:3])  # norm coord in lidar to 0~1
         coords3d = coords3d.reshape(B, -1, D*3)  # (B, LEN, D*3), 0~1 norm
       
-        pos_embed  = inverse_sigmoid(coords3d)  # why use inverse_sigmoid
+        pos_embed  = inverse_sigmoid(coords3d)  # why PE uses inverse_sigmoid but spatial alignment uses sigmoid?
         coords_position_embeding = self.position_encoder(pos_embed)  # (B, LEN, embed_dims)
         intrinsic = topk_gather(intrinsic, topk_indexes)
 
@@ -448,7 +452,7 @@ class StreamPETRHead(AnchorFreeHead):
             temp_pos = self.ego_pose_pe(temp_pos, memory_ego_motion)
             temp_memory = self.ego_pose_memory(temp_memory, memory_ego_motion)
 
-        # why here add time embedding?
+        # why adding time embedding here?
         query_pos += self.time_embedding(pos2posemb1d(torch.zeros_like(reference_points[...,:1])))  # (bs, aug_gt_num + num_query, embed_dims)
         temp_pos += self.time_embedding(pos2posemb1d(self.memory_timestamp).float())  # (bs, memory_len, embed_dims)
 
@@ -619,7 +623,7 @@ class StreamPETRHead(AnchorFreeHead):
 
         # prepare for the tgt and query_pos using mln.
         # tgt, query_pos: (bs, aug_gt_num + num_query + propagated, embed_dims)
-        # reference_points: (bs, aug_gt_num + num_query + propagated, 3)
+        # reference_points: (bs, aug_gt_num + num_query + propagated, 3), in sigmoid format
         # temp_memory, temp_pos: (bs, memory_len - propagated, embed_dims)
         # rec_ego_pose: (bs, aug_gt_num + num_query + propagated, 4, 4), torch.eye
         tgt, query_pos, reference_points, temp_memory, temp_pos, rec_ego_pose = self.temporal_alignment(query_pos, tgt, reference_points)
