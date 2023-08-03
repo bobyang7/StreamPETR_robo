@@ -29,6 +29,7 @@ def parse_args():
         description='MMDet test (and eval) a model')
     parser.add_argument('config',help='test config file path')
     parser.add_argument('checkpoint', help='checkpoint file')
+    parser.add_argument('--save_name', default="default", help='subdir name for saving results')
     parser.add_argument('--out', help='output result file in pickle format')
     parser.add_argument(
         '--fuse-conv-bn',
@@ -240,7 +241,7 @@ def main():
             #mmcv.dump(outputs['bbox_results'], args.out)
         kwargs = {} if args.eval_options is None else args.eval_options
         kwargs['jsonfile_prefix'] = osp.join('test', args.config.split(
-            '/')[-1].split('.')[-2], time.ctime().replace(' ', '_').replace(':', '_'))
+            '/')[-1].split('.')[-2], args.save_name, time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime(time.time()+8*3600)))
         if args.format_only:
             dataset.format_results(outputs, **kwargs)
 
