@@ -14,7 +14,7 @@ if not os.path.exists(out_dir):
 if use_gt:
     nusc = NuScenes(version='v1.0-trainval', dataroot=dataroot, verbose=True, pred = False, annotations = "sample_annotation")
 else:
-    nusc = NuScenes(version='v1.0-trainval', dataroot=dataroot, verbose=True, pred = True, annotations = result_json, score_thr=0.0)
+    nusc = NuScenes(version='v1.0-trainval', dataroot=dataroot, verbose=True, pred = True, annotations = result_json, score_thr=0.25)
 
 with open(f"{result_json}.json") as f:
     table = json.load(f)
