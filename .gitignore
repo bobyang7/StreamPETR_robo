@@ -160,4 +160,5 @@ run*.sh
 test*.sh
 tmp/
 val
+test
 .vscode
