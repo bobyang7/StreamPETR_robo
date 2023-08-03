@@ -60,22 +60,22 @@ class CustomNuScenesDataset(NuScenesDataset):
 
         curr_sequence = 0
         for idx in range(len(self.data_infos)):
-            if idx != 0 and len(self.data_infos[idx]['sweeps']) == 0:
+            if idx != 0 and len(self.data_infos[idx]['sweeps']) == 0: # TODO (zhe.wang2): what does sweeps mean?
                 # Not first frame and # of sweeps is 0 -> new sequence
                 curr_sequence += 1
             res.append(curr_sequence)
 
-        self.flag = np.array(res, dtype=np.int64)
+        self.flag = np.array(res, dtype=np.int64) # `self.flag` means clip_id
 
         if self.seq_split_num != 1:
-            if self.seq_split_num == 'all':
+            if self.seq_split_num == 'all': # single frame input, endow each frame with an unique clip_id
                 self.flag = np.array(range(len(self.data_infos)), dtype=np.int64)
             else:
-                bin_counts = np.bincount(self.flag)
+                bin_counts = np.bincount(self.flag) # num frames within each clip
                 new_flags = []
                 curr_new_flag = 0
                 for curr_flag in range(len(bin_counts)):
-                    curr_sequence_length = np.array(
+                    curr_sequence_length = np.array(    # [start_idx, split_idx, end_idx]
                         list(range(0, 
                                 bin_counts[curr_flag], 
                                 math.ceil(bin_counts[curr_flag] / self.seq_split_num)))
@@ -88,7 +88,7 @@ class CustomNuScenesDataset(NuScenesDataset):
 
                 assert len(new_flags) == len(self.flag)
                 assert len(np.bincount(new_flags)) == len(np.bincount(self.flag)) * self.seq_split_num
-                self.flag = np.array(new_flags, dtype=np.int64)
+                self.flag = np.array(new_flags, dtype=np.int64) # endow each frame with an unique sub-clip_id
 
 
     def prepare_train_data(self, index):

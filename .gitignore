@@ -156,7 +156,10 @@ mmdetection3d/.venv
 
 # custom
 work_dirs
-run.sh
+run*.sh
+test*.sh
 tmp/
 val
+test
+debug
 .vscode
