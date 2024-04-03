@@ -25,7 +25,7 @@ class CBGSDataset(object):
         if hasattr(self.dataset, 'flag'):
             self.flag = np.array(
                 [self.dataset.flag[ind] for ind in self.sample_indices],
-                dtype=np.uint8)
+                dtype=np.long)
 
     def _get_sample_indices(self):
         """Load annotations from ann_file.

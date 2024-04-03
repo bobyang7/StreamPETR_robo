@@ -10,6 +10,8 @@ tpp_bev/proto/*.py
 relative_cache
 tpp_bev/tools/argus_post
 
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -162,4 +164,11 @@ tmp/
 val
 test
 debug
-.vscode
+velo/
+projects_depth/
+Far3D-main/
+bobyang/
+ckpts/
+data/
+StreamPETR-new/
+pred.json

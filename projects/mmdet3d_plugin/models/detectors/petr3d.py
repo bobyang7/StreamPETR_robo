@@ -59,12 +59,12 @@ class Petr3D(MVXTwoStageDetector):
         self.stride = stride
         self.position_level = position_level
         self.aux_2d_only = aux_2d_only
+        self.test_flag = False
 
 
     def extract_img_feat(self, img, len_queue=1, training_mode=False):
         """Extract features of images."""
-        # output's shape is equal to the input's shape
-        B = img.size(0)  # (bs, T', N, C, H, W)
+        B = img.size(0)
 
         if img is not None:
             if img.dim() == 6:
@@ -92,7 +92,7 @@ class Petr3D(MVXTwoStageDetector):
             img_feats_reshaped = img_feats[self.position_level].view(B, int(BN/B/len_queue), C, H, W)
 
 
-        return img_feats_reshaped  # (bs, T', N, C, H, W)
+        return img_feats_reshaped
 
 
     @auto_fp16(apply_to=('img'), out_fp32=True)
@@ -111,7 +111,6 @@ class Petr3D(MVXTwoStageDetector):
                             depths=None,
                             gt_bboxes_ignore=None,
                             **data):
-        # gt_bboxes_3d: [[gt_boxes] * bs] * T
         losses = dict()
         T = data['img'].size(1)
         num_nograd_frames = T - self.num_frame_head_grads
@@ -181,7 +180,6 @@ class Petr3D(MVXTwoStageDetector):
         if not requires_grad:
             self.eval()
             with torch.no_grad():
-                # why here dose not need execute forward_roi_head?
                 outs = self.pts_bbox_head(location, img_metas, None, **data)
             self.train()
 
@@ -253,7 +251,11 @@ class Petr3D(MVXTwoStageDetector):
         Returns:
             dict: Losses of different branches.
         """
-        T = data['img'].size(1)  # (bs, T, N, C, H, W)
+        if self.test_flag: #for interval evaluation
+            self.pts_bbox_head.reset_memory()
+            self.test_flag = False
+
+        T = data['img'].size(1)
 
         prev_img = data['img'][:, :-self.num_frame_backbone_grads]
         rec_img = data['img'][:, -self.num_frame_backbone_grads:]
@@ -276,6 +278,7 @@ class Petr3D(MVXTwoStageDetector):
   
   
     def forward_test(self, img_metas, rescale, **data):
+        self.test_flag = True
         for var, name in [(img_metas, 'img_metas')]:
             if not isinstance(var, list):
                 raise TypeError('{} must be a list, but got {}'.format(

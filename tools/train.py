@@ -120,7 +120,13 @@ def main():
                 for m in _module_dir[1:]:
                     _module_path = _module_path + '.' + m
                 print(_module_path)
+                # plg_lib = importlib.import_module(_module_path)
+
+                #将plugin_dir加入到系统路径中
+                import sys
+                sys.path.append("/home/bo.yang5/streampetr/")
                 plg_lib = importlib.import_module(_module_path)
+
             else:
                 # import dir is the dirpath for the config file
                 _module_dir = os.path.dirname(args.config)

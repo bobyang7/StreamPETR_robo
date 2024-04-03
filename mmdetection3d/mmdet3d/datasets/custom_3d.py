@@ -86,6 +86,7 @@ class Custom3DDataset(Dataset):
         if hasattr(self.file_client, 'get_local_path'):
             with self.file_client.get_local_path(self.ann_file) as local_path:
                 self.data_infos = self.load_annotations(open(local_path, 'rb'))
+                # self.data_infos = self.data_infos[:10]
         else:
             warnings.warn(
                 'The used MMCV version does not have get_local_path. '

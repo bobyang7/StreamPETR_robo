@@ -113,6 +113,29 @@ class NuScenesDataset(Custom3DDataset):
                'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone',
                'barrier')
 
+    CORRUPTION = [
+        "clean",
+        "brightness",
+        "dark",
+        "fog",
+        "frost",
+        "snow",
+        "contrast",
+        "defocus_blur",
+        "glass_blur",
+        "motion_blur",
+        "zoom_blur",
+        "elastic_transform",
+        "color_quant",
+        "gaussian_noise",
+        "impulse_noise",
+        "shot_noise",
+        "iso_noise",
+        "pixelate",
+        "jpeg_compression",
+    ]
+
+
     def __init__(self,
                  ann_file,
                  pipeline=None,
@@ -186,7 +209,20 @@ class NuScenesDataset(Custom3DDataset):
         """
         data = mmcv.load(ann_file, file_format='pkl')
         data_infos = list(sorted(data['infos'], key=lambda e: e['timestamp']))
+
+        
+
         data_infos = data_infos[::self.load_interval]
+        # #统计所有类别的vx和vy
+        # res = []
+        # for i in data_infos:
+        #     for j in range(i['gt_names'].shape[0]):
+        #         res.append([i['gt_names'][j], i['gt_velocity'][j][0], i['gt_velocity'][j][1]])
+        # #将res保存到pickle
+        # import pickle
+        # with open("velo.pickle", 'wb') as f:
+        #     pickle.dump(res, f)
+        
         self.metadata = data['metadata']
         self.version = self.metadata['version']
         return data_infos
@@ -316,7 +352,7 @@ class NuScenesDataset(Custom3DDataset):
         print('Start to convert detection format...')
         for sample_id, det in enumerate(mmcv.track_iter_progress(results)):
             annos = []
-            boxes = output_to_nusc_box(det, self.with_velocity)
+            boxes = output_to_nusc_box(det)
             sample_token = self.data_infos[sample_id]['token']
             boxes = lidar_nusc_box_to_global(self.data_infos[sample_id], boxes,
                                              mapped_class_names,
@@ -390,6 +426,7 @@ class NuScenesDataset(Custom3DDataset):
         from nuscenes.eval.detection.evaluate import NuScenesEval
 
         output_dir = osp.join(*osp.split(result_path)[:-1])
+        # output_dir = "/home/bo.yang5/streampetr/val/work_dirs/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e_val/Wed_Aug_30_04_22_24_2023/pts_bbox"
         nusc = NuScenes(
             version=self.version, dataroot=self.data_root, verbose=False)
         eval_set_map = {
@@ -466,8 +503,13 @@ class NuScenesDataset(Custom3DDataset):
                 print(f'\nFormating bboxes of {name}')
                 results_ = [out[name] for out in results]
                 tmp_file_ = osp.join(jsonfile_prefix, name)
+                # result_files.update(
+                #     {name: self._format_bbox(results_, tmp_file_)})
                 result_files.update(
-                    {name: self._format_bbox(results_, tmp_file_)})
+                    {
+                        name: "/home/bo.yang5/streampetr/val/work_dirs/repdetr3d_eva02_800_bs2_seq_24e/Tue_Mar_26_12_23_40_2024/pts_bbox/results_nusc.json"
+                    }
+                )
         return result_files, tmp_dir
 
     def evaluate(self,
@@ -475,7 +517,7 @@ class NuScenesDataset(Custom3DDataset):
                  metric='bbox',
                  logger=None,
                  jsonfile_prefix=None,
-                 result_names=['pts_bbox'],
+                 result_names=['img_bbox'],
                  show=False,
                  out_dir=None,
                  pipeline=None):
@@ -501,6 +543,14 @@ class NuScenesDataset(Custom3DDataset):
             dict[str, float]: Results of each evaluation metric.
         """
         result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+        tmp_dir = None
+        
+        # import json
+        # json_file_path = "/home/bo.yang5/streampetr/val/work_dirs/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e_val/Wed_Aug_30_04_22_24_2023/pts_bbox/results_nusc.json"
+        # # with open(json_file_path, "r") as json_file:
+        # #     result = json.load(json_file)
+        # #     result_files = {'pts_bbox': result}
+        # result_files = {'pts_bbox': "/home/bo.yang5/streampetr/val/work_dirs/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e_val/Wed_Aug_30_04_22_24_2023/pts_bbox/results_nusc.json"}
 
         if isinstance(result_files, dict):
             results_dict = dict()
@@ -573,51 +623,102 @@ class NuScenesDataset(Custom3DDataset):
                         file_name, show)
 
 
-def output_to_nusc_box(detection, with_velocity=True):
-    """Convert the output to the box class in the nuScenes.
+# def output_to_nusc_box(detection, with_velocity=True):
+#     """Convert the output to the box class in the nuScenes.
 
-    Args:
-        detection (dict): Detection results.
+#     Args:
+#         detection (dict): Detection results.
 
-            - boxes_3d (:obj:`BaseInstance3DBoxes`): Detection bbox.
-            - scores_3d (torch.Tensor): Detection scores.
-            - labels_3d (torch.Tensor): Predicted box labels.
+#             - boxes_3d (:obj:`BaseInstance3DBoxes`): Detection bbox.
+#             - scores_3d (torch.Tensor): Detection scores.
+#             - labels_3d (torch.Tensor): Predicted box labels.
 
-    Returns:
-        list[:obj:`NuScenesBox`]: List of standard NuScenesBoxes.
-    """
-    box3d = detection['boxes_3d']
-    scores = detection['scores_3d'].numpy()
-    labels = detection['labels_3d'].numpy()
+#     Returns:
+#         list[:obj:`NuScenesBox`]: List of standard NuScenesBoxes.
+#     """
+#     box3d = detection['boxes_3d']
+#     scores = detection['scores_3d'].numpy()
+#     labels = detection['labels_3d'].numpy()
 
-    box_gravity_center = box3d.gravity_center.numpy()
-    box_dims = box3d.dims.numpy()
-    box_yaw = box3d.yaw.numpy()
+#     box_gravity_center = box3d.gravity_center.numpy()
+#     box_dims = box3d.dims.numpy()
+#     box_yaw = box3d.yaw.numpy()
 
-    # our LiDAR coordinate system -> nuScenes box coordinate system
-    nus_box_dims = box_dims[:, [1, 0, 2]]
+#     # our LiDAR coordinate system -> nuScenes box coordinate system
+#     nus_box_dims = box_dims[:, [1, 0, 2]]
+
+#     box_list = []
+#     for i in range(len(box3d)):
+#         quat = pyquaternion.Quaternion(axis=[0, 0, 1], radians=box_yaw[i])
+#         if with_velocity:
+#             velocity = (*box3d.tensor[i, 7:9], 0.0)
+#         else:
+#             velocity = (0, 0, 0)
+#         # velo_val = np.linalg.norm(box3d[i, 7:9])
+#         # velo_ori = box3d[i, 6]
+#         # velocity = (
+#         # velo_val * np.cos(velo_ori), velo_val * np.sin(velo_ori), 0.0)
+#         box = NuScenesBox(
+#             box_gravity_center[i],
+#             nus_box_dims[i],
+#             quat,
+#             label=labels[i],
+#             score=scores[i],
+#             velocity=velocity)
+#         box_list.append(box)
+#     return box_list
+
+def output_to_nusc_box(detection, threshold=None):
+    box3d = detection["boxes_3d"]
+    scores = detection["scores_3d"].numpy()
+    labels = detection["labels_3d"].numpy()
+    if "instance_ids" in detection:
+        ids = detection["instance_ids"]  # .numpy()
+    if threshold is not None:
+        if "cls_scores" in detection:
+            mask = detection["cls_scores"].numpy() >= threshold
+        else:
+            mask = scores >= threshold
+        box3d = box3d[mask]
+        scores = scores[mask]
+        labels = labels[mask]
+        ids = ids[mask]
+
+    if hasattr(box3d, "gravity_center"):
+        box_gravity_center = box3d.gravity_center.numpy()
+        box_dims = box3d.dims.numpy()
+        nus_box_dims = box_dims[:, [1, 0, 2]]
+        box_yaw = box3d.yaw.numpy()
+    else:
+        box3d = box3d.numpy()
+        box_gravity_center = box3d[..., :3].copy()
+        box_dims = box3d[..., 3:6].copy()
+        nus_box_dims = box_dims[..., [1, 0, 2]]
+        box_yaw = box3d[..., 6].copy()
+
+    # TODO: check whether this is necessary
+    # with dir_offset & dir_limit in the head
+    # box_yaw = -box_yaw - np.pi / 2
 
     box_list = []
     for i in range(len(box3d)):
         quat = pyquaternion.Quaternion(axis=[0, 0, 1], radians=box_yaw[i])
-        if with_velocity:
+        if hasattr(box3d, "gravity_center"):
             velocity = (*box3d.tensor[i, 7:9], 0.0)
         else:
-            velocity = (0, 0, 0)
-        # velo_val = np.linalg.norm(box3d[i, 7:9])
-        # velo_ori = box3d[i, 6]
-        # velocity = (
-        # velo_val * np.cos(velo_ori), velo_val * np.sin(velo_ori), 0.0)
+            velocity = (*box3d[i, 7:9], 0.0)
         box = NuScenesBox(
             box_gravity_center[i],
             nus_box_dims[i],
             quat,
             label=labels[i],
             score=scores[i],
-            velocity=velocity)
+            velocity=velocity,
+        )
+        if "instance_ids" in detection:
+            box.token = ids[i]
         box_list.append(box)
     return box_list
-
 
 def lidar_nusc_box_to_global(info,
                              boxes,
