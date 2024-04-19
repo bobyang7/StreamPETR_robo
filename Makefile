@@ -41,3 +41,6 @@ dev: venv
 	${PIPRUN} pip install mmsegmentation==0.30.0 -c env/constraint.txt
 	${PIPRUN} pip install -e mmdetection3d -c env/constraint.txt
 	${PIPRUN} pip install flash-attn==0.2.2 --no-build-isolation --no-cache-dir
+	${PIPRUN} pip install fvcore
+	${PIPRUN} pip install yapf==0.40.1
+	
