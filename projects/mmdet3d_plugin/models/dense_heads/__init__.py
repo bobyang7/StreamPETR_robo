@@ -5,3 +5,5 @@ from .sparse_head import SparseHead
 from .yolox_head import YOLOXHeadCustom
 from .sparse_head_dep import SparseHeadDepth
 from .yolox_head_dep import YOLOXHeadCustomDepth
+from .yolox_head_dep_custom import YOLOXHeadCustomDepth_CUSTOM
+from .sparse_head_custom import SparseHead_CUSTOM

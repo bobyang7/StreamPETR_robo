@@ -1,1 +1,2 @@
-from .depth_predictor import DepthPredictor
+from .depth_predictor import DepthPredictor, DenseDepthNet
+

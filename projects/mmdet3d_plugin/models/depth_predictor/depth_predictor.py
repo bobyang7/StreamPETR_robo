@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from mmcv.runner.base_module import Sequential, BaseModule
+from mmdet.models.backbones.resnet import BasicBlock
 
 
 class DepthPredictor(nn.Module):
@@ -68,6 +70,7 @@ class DepthPredictor(nn.Module):
         src_8 = self.downsample(feature[0])
         src = (src_8 + src_16 + src_32) / 3
         '''
+        import pdb; pdb.set_trace()
         if self.multi_level_fusion:
            # input multi-level feature
            src_8 = self.proj_8(feature[0].flatten(0, 1))
@@ -84,3 +87,47 @@ class DepthPredictor(nn.Module):
         # weighted_depth = (depth_probs * self.depth_bin_values.reshape(1, -1, 1, 1)).sum(dim=1)
 
         return depth_logits
+
+
+class DenseDepthNet(BaseModule):
+    def __init__(
+        self,
+        embed_dims=256,
+        num_depth_layers=1,
+        equal_focal=100,
+        max_depth=60,
+        loss_weight=1.0,
+        depth_channels=80,
+        *args, 
+        **kwargs,
+    ):
+        super().__init__()
+        self.embed_dims = embed_dims
+        self.equal_focal = equal_focal
+        self.num_depth_layers = num_depth_layers
+        self.loss_weight = loss_weight
+        self.depth_channels = depth_channels
+
+        # self.depth_layers = nn.Conv2d(embed_dims, depth_channels, kernel_size=1, stride=1, padding=0)
+        depth_conv_list = [
+           BasicBlock(embed_dims, embed_dims, ),
+            BasicBlock(embed_dims, embed_dims),
+            BasicBlock(embed_dims, embed_dims),
+        ]
+
+        depth_conv_list.append(
+            nn.Conv2d(
+                embed_dims,
+                depth_channels,
+                kernel_size=1,
+                stride=1,
+                padding=0))
+        
+        self.depth_layers = nn.Sequential(*depth_conv_list)
+
+
+    def forward(self, feature_maps, focal=None, gt_depths=None):
+        depths = self.depth_layers(feature_maps)
+        
+      
+        return depths
