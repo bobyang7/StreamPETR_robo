@@ -21,3 +21,5 @@ python -m torch.distributed.launch \
     $CHECKPOINT \
     --launcher pytorch \
     ${@:4}
+
+    # tools/dist_test_robo.sh projects/configs/RepDETR3D/repdetr3d_eva02_800_bs2_seq_24e_robo.py work_dirs/repdetr3d_eva02_800_bs2_seq_24e/iter_42192.pth 8 --eval bbox

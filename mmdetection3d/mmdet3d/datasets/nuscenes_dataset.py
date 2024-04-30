@@ -503,13 +503,13 @@ class NuScenesDataset(Custom3DDataset):
                 print(f'\nFormating bboxes of {name}')
                 results_ = [out[name] for out in results]
                 tmp_file_ = osp.join(jsonfile_prefix, name)
-                # result_files.update(
-                #     {name: self._format_bbox(results_, tmp_file_)})
                 result_files.update(
-                    {
-                        name: "/home/bo.yang5/streampetr/val/work_dirs/repdetr3d_eva02_800_bs2_seq_24e/Tue_Mar_26_12_23_40_2024/pts_bbox/results_nusc.json"
-                    }
-                )
+                    {name: self._format_bbox(results_, tmp_file_)})
+                # result_files.update(
+                #     {
+                #         name: "/home/bo.yang5/streampetr/work_dirs/repdetr3d_eva02_800_bs2_seq_24e/results_nusc.json"
+                #     }
+                # )
         return result_files, tmp_dir
 
     def evaluate(self,
@@ -517,7 +517,7 @@ class NuScenesDataset(Custom3DDataset):
                  metric='bbox',
                  logger=None,
                  jsonfile_prefix=None,
-                 result_names=['img_bbox'],
+                 result_names=['pts_bbox'],
                  show=False,
                  out_dir=None,
                  pipeline=None):
@@ -552,21 +552,21 @@ class NuScenesDataset(Custom3DDataset):
         # #     result_files = {'pts_bbox': result}
         # result_files = {'pts_bbox': "/home/bo.yang5/streampetr/val/work_dirs/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e_val/Wed_Aug_30_04_22_24_2023/pts_bbox/results_nusc.json"}
 
-        if isinstance(result_files, dict):
-            results_dict = dict()
-            for name in result_names:
-                print('Evaluating bboxes of {}'.format(name))
-                ret_dict = self._evaluate_single(result_files[name])
-            results_dict.update(ret_dict)
-        elif isinstance(result_files, str):
-            results_dict = self._evaluate_single(result_files)
+        # if isinstance(result_files, dict):
+        #     results_dict = dict()
+        #     for name in result_names:
+        #         print('Evaluating bboxes of {}'.format(name))
+        #         ret_dict = self._evaluate_single(result_files[name])
+        #     results_dict.update(ret_dict)
+        # elif isinstance(result_files, str):
+        #     results_dict = self._evaluate_single(result_files)
 
-        if tmp_dir is not None:
-            tmp_dir.cleanup()
+        # if tmp_dir is not None:
+        #     tmp_dir.cleanup()
 
-        if show or out_dir:
-            self.show(results, out_dir, show=show, pipeline=pipeline)
-        return results_dict
+        # if show or out_dir:
+        #     self.show(results, out_dir, show=show, pipeline=pipeline)
+        # return results_dict
 
     def _build_default_pipeline(self):
         """Build the default pipeline for this dataset."""

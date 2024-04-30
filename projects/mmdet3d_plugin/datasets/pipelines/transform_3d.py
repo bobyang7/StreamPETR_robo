@@ -383,3 +383,53 @@ class GlobalRotScaleTransImage():
         num_view = len(results["lidar2img"])
         for view in range(num_view):
             results["lidar2img"][view] = (torch.tensor(results["lidar2img"][view]).float() @ scale_mat_inv).numpy()
+
+            
+@PIPELINES.register_module()
+class MultiScaleDepthMapGenerator(object):
+    def __init__(self, downsample=1, max_depth=60):
+        if not isinstance(downsample, (list, tuple)):
+            downsample = [downsample]
+        self.downsample = downsample
+        self.max_depth = max_depth
+
+    def __call__(self, input_dict):
+        points = input_dict["points"].tensor[..., :3, None].numpy()
+        gt_depth = []
+        for i, lidar2img in enumerate(input_dict["lidar2img"]):
+            H, W = input_dict["img"][i].shape[:2]
+
+            pts_2d = (
+                np.squeeze(lidar2img[:3, :3] @ points, axis=-1)
+                + lidar2img[:3, 3]
+            )
+            pts_2d[:, :2] /= pts_2d[:, 2:3]
+            U = np.round(pts_2d[:, 0]).astype(np.int32)
+            V = np.round(pts_2d[:, 1]).astype(np.int32)
+            depths = pts_2d[:, 2]
+            mask = np.logical_and.reduce(
+                [
+                    V >= 0,
+                    V < H,
+                    U >= 0,
+                    U < W,
+                    depths >= 0.1,
+                    # depths <= self.max_depth,
+                ]
+            )
+            V, U, depths = V[mask], U[mask], depths[mask]
+            sort_idx = np.argsort(depths)[::-1]
+            V, U, depths = V[sort_idx], U[sort_idx], depths[sort_idx]
+            depths = np.clip(depths, 0.1, self.max_depth)
+            for j, downsample in enumerate(self.downsample):
+                if len(gt_depth) < j + 1:
+                    gt_depth.append([])
+                h, w = (int(H / downsample), int(W / downsample))
+                u = np.floor(U / downsample).astype(np.int32)
+                v = np.floor(V / downsample).astype(np.int32)
+                depth_map = np.ones([h, w], dtype=np.float32) * -1
+                depth_map[v, u] = depths
+                gt_depth[j].append(depth_map)
+
+        input_dict["depths"] = [np.stack(x) for x in gt_depth]
+        return input_dict

@@ -171,4 +171,5 @@ bobyang/
 ckpts/
 data/
 StreamPETR-new/
-pred.json
+pred*.json
+Note*

@@ -242,8 +242,9 @@ def main():
             model.cuda(),
             device_ids=[torch.cuda.current_device()],
             broadcast_buffers=False)
-        outputs = custom_multi_gpu_test(model, data_loader, args.tmpdir,
-                                        args.gpu_collect)
+        # outputs = custom_multi_gpu_test(model, data_loader, args.tmpdir,
+        #                                 args.gpu_collect)
+        outputs = mmcv.load("/home/bo.yang5/streampetr/work_dirs/repdetr3d_eva02_800_bs2_seq_24e/eva_train.pkl")
 
     rank, _ = get_dist_info()
     if rank == 0:
