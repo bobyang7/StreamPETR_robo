@@ -103,7 +103,7 @@ class SparseHead_CUSTOM(AnchorFreeHead):
         if 'code_size' in kwargs:
             self.code_size = kwargs['code_size']
         else:
-            self.code_size = 20
+            self.code_size = 11
         if code_weights is not None:
             self.code_weights = code_weights
         else:

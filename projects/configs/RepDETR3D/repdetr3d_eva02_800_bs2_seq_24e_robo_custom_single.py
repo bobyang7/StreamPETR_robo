@@ -122,7 +122,7 @@ model = dict(
         return_bbox2d_scores=True,
         return_context_feat=True,
         # ------------------
-        code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
         transformer=dict(
             type='Detr3DTransformer',
             decoder=dict(
