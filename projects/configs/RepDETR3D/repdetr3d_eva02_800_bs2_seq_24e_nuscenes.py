@@ -229,8 +229,24 @@ data = dict(
         use_valid_flag=True,
         filter_empty_gt=False,
         box_type_3d='LiDAR'),
-    val=dict(type=dataset_type, pipeline=test_pipeline, collect_keys=collect_keys + ['img', 'img_metas'], queue_length=queue_length, ann_file=data_root + 'nuscenes2d_temporal_infos_val.pkl', classes=class_names, modality=input_modality),
-    test=dict(type=dataset_type, pipeline=test_pipeline, collect_keys=collect_keys + ['img', 'img_metas'], queue_length=queue_length, ann_file=data_root + 'nuscenes2d_temporal_infos_val.pkl', classes=class_names, modality=input_modality),
+    val=dict(
+        type=dataset_type, 
+        pipeline=test_pipeline, 
+        collect_keys=collect_keys + ['img', 'img_metas'], 
+        queue_length=queue_length, 
+        ann_file=data_root + 'nuscenes2d_temporal_infos_val.pkl', 
+        classes=class_names, 
+        modality=input_modality),
+
+    test=dict(
+        type=dataset_type, 
+        pipeline=test_pipeline, 
+        collect_keys=collect_keys + ['img', 'img_metas'], 
+        queue_length=queue_length, 
+        ann_file=data_root + 'nuscenes2d_temporal_infos_val.pkl', 
+        classes=class_names, 
+        modality=input_modality),
+
     shuffler_sampler=dict(type='InfiniteGroupEachSampleInBatchSampler'),
     nonshuffler_sampler=dict(type='DistributedSampler')
     )

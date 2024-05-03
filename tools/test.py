@@ -234,8 +234,8 @@ def main():
     if not distributed:
         # assert False
         model = MMDataParallel(model, device_ids=[0])
-        outputs = single_gpu_test(model, data_loader, args.show, args.show_dir)
-        # outputs = mmcv.load("/home/bo.yang5/other/Sparse4D-full/infer_out_baseline.pkl")
+        # outputs = single_gpu_test(model, data_loader, args.show, args.show_dir)
+        outputs = mmcv.load("infer_rep_depth_psc.pkl")
         
     else:
         model = MMDistributedDataParallel(
@@ -244,7 +244,8 @@ def main():
             broadcast_buffers=False)
         # outputs = custom_multi_gpu_test(model, data_loader, args.tmpdir,
         #                                 args.gpu_collect)
-        outputs = mmcv.load("/home/bo.yang5/streampetr/work_dirs/repdetr3d_eva02_800_bs2_seq_24e/eva_train.pkl")
+        # outputs = mmcv.dump(outputs, "infer_rep_depth_psc.pkl")
+        outputs = mmcv.load("infer_rep_depth_psc.pkl")
 
     rank, _ = get_dist_info()
     if rank == 0:

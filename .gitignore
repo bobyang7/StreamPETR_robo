@@ -172,4 +172,5 @@ ckpts/
 data/
 StreamPETR-new/
 pred*.json
-Note*
+Note*/
+test_psc.py

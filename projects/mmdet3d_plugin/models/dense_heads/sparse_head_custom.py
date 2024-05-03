@@ -550,7 +550,7 @@ class SparseHead_CUSTOM(AnchorFreeHead):
 
 
 
-    def forward(self, img_metas, outs_roi, **data):
+    def forward(self, img_metas, outs_roi=None, **data):
         """Forward function.
         Args:
             mlvl_feats (tuple[Tensor]): Features from the upstream
@@ -589,7 +589,7 @@ class SparseHead_CUSTOM(AnchorFreeHead):
         reference_points, attn_mask, mask_dict = self.prepare_for_dn(B, reference_points, img_metas)
         query_pos = self.query_embedding(pos2posemb3d(reference_points))
 
-        if self.add_query_from_2d:
+        if self.add_query_from_2d and outs_roi:
             # pred depth processs
             # pred_depth = outs_roi['pred_depth'].detach()
             pred_depth = outs_roi['pred_depth_single_stage'].detach()   # by shengyin

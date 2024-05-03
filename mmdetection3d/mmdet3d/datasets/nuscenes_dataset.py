@@ -542,31 +542,31 @@ class NuScenesDataset(Custom3DDataset):
         Returns:
             dict[str, float]: Results of each evaluation metric.
         """
-        result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
-        tmp_dir = None
+        # result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+        # tmp_dir = None
         
         # import json
         # json_file_path = "/home/bo.yang5/streampetr/val/work_dirs/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e_val/Wed_Aug_30_04_22_24_2023/pts_bbox/results_nusc.json"
-        # # with open(json_file_path, "r") as json_file:
-        # #     result = json.load(json_file)
-        # #     result_files = {'pts_bbox': result}
-        # result_files = {'pts_bbox': "/home/bo.yang5/streampetr/val/work_dirs/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e_val/Wed_Aug_30_04_22_24_2023/pts_bbox/results_nusc.json"}
+        # with open(json_file_path, "r") as json_file:
+        #     result = json.load(json_file)
+        #     result_files = {'pts_bbox': result}
+        result_files = {'pts_bbox': "/home/bo.yang5/streampetr/results_nusc.json"}
 
-        # if isinstance(result_files, dict):
-        #     results_dict = dict()
-        #     for name in result_names:
-        #         print('Evaluating bboxes of {}'.format(name))
-        #         ret_dict = self._evaluate_single(result_files[name])
-        #     results_dict.update(ret_dict)
-        # elif isinstance(result_files, str):
-        #     results_dict = self._evaluate_single(result_files)
+        if isinstance(result_files, dict):
+            results_dict = dict()
+            for name in result_names:
+                print('Evaluating bboxes of {}'.format(name))
+                ret_dict = self._evaluate_single(result_files[name])
+            results_dict.update(ret_dict)
+        elif isinstance(result_files, str):
+            results_dict = self._evaluate_single(result_files)
 
-        # if tmp_dir is not None:
-        #     tmp_dir.cleanup()
+        if tmp_dir is not None:
+            tmp_dir.cleanup()
 
-        # if show or out_dir:
-        #     self.show(results, out_dir, show=show, pipeline=pipeline)
-        # return results_dict
+        if show or out_dir:
+            self.show(results, out_dir, show=show, pipeline=pipeline)
+        return results_dict
 
     def _build_default_pipeline(self):
         """Build the default pipeline for this dataset."""

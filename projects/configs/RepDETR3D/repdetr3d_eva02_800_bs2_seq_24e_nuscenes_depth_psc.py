@@ -1,3 +1,5 @@
+# 该配置文件是depth+psc, 在nuscenes上推理
+
 _base_ = [
     '../../../mmdetection3d/configs/_base_/datasets/nus-3d.py',
     '../../../mmdetection3d/configs/_base_/default_runtime.py'
@@ -35,6 +37,23 @@ input_modality = dict(
     use_map=False,
     use_external=True)
 
+strides=[4, 8, 16, 32]
+depthnet_config=dict(
+            embed_dims=256, 
+            num_depth_layers=4, 
+            equal_focal=100, 
+            max_depth=60,
+            loss_weight=0.2,
+            strides=strides,
+            depth_channels=120, #(grid_config['depth'][1]-grid_config['depth'][0])//grid_config['depth'][2]
+            grid_config=dict(
+                    x=[-40, 40, 0.8],
+                    y=[-40, 40, 0.8],
+                    z=[-1, 5.4, 0.8],
+                    depth=[1.0, 60.0, 0.5],),
+)
+
+
 sim_fpn=dict(
         scale_factors=[4, 2, 1, 0.5],
         in_channels=1024,
@@ -43,7 +62,7 @@ sim_fpn=dict(
         )
 
 model = dict(
-    type='RepDetr3D',
+    type='RepDetr3D_CUSTOM',
     num_frame_head_grads=num_frame_losses,
     num_frame_backbone_grads=num_frame_losses,
     num_frame_losses=num_frame_losses,
@@ -71,15 +90,20 @@ model = dict(
         flash_attn=True,
     ),
     img_roi_head=dict(
-        type='YOLOXHeadCustom',
+        type='YOLOXHeadCustomDepth_CUSTOM',
         num_classes=10,
         in_channels=256,
-        strides=[4, 8, 16, 32],
+        strides=strides,
         train_cfg=dict(assigner=dict(type='SimOTAAssigner', center_radius=2.5)),
         test_cfg=dict(score_thr=0.01, nms=dict(type='nms', iou_threshold=0.65)),
+        pred_with_depth=True,
+        topk_proposal=30,
+        depthnet_config=depthnet_config,
+        loss_depth_weight=1.0,
+        return_context_feat=True,
         ),
     pts_bbox_head=dict(
-        type='SparseHead',
+        type='SparseHead_CUSTOM',
         num_classes=10,
         in_channels=256,
         num_query=644,
@@ -93,7 +117,14 @@ model = dict(
         with_dn=True,
         with_ego_pos=True,
         match_with_velo=False,
-        code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        # ---------------
+        add_query_from_2d=True,
+        depthnet_config=depthnet_config,
+        train_use_gt_depth=True,
+        return_bbox2d_scores=True,
+        return_context_feat=True,
+        # ------------------
+        code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
         transformer=dict(
             type='Detr3DTransformer',
             decoder=dict(
@@ -171,11 +202,22 @@ ida_aug_conf = {
     }
 train_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+    dict(
+        type="LoadPointsFromFile",
+        coord_type="LIDAR",
+        load_dim=5,
+        use_dim=5,
+        file_client_args=file_client_args,
+    ),
     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True, with_bbox=True,
         with_label=True, with_bbox_depth=True),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
     dict(type='ResizeCropFlipRotImage', data_aug_conf = ida_aug_conf, training=True),
+    dict(
+        type="MultiScaleDepthMapGenerator",
+        downsample=depthnet_config['strides'],
+    ),
     dict(type='GlobalRotScaleTransImage',
             rot_range=[-0.3925, 0.3925],
             translation_std=[0, 0, 0],
@@ -187,7 +229,7 @@ train_pipeline = [
     dict(type='PadMultiViewImage', size_divisor=32),
     dict(type='PETRFormatBundle3D', class_names=class_names, collect_keys=collect_keys + ['prev_exists']),
     dict(type='Collect3D', keys=['gt_bboxes_3d', 'gt_labels_3d', 'img', 'gt_bboxes', 'gt_labels', 'centers2d', 'depths', 'prev_exists'] + collect_keys,
-             meta_keys=('filename', 'ori_shape', 'img_shape', 'pad_shape', 'scale_factor', 'flip', 'box_mode_3d', 'box_type_3d', 'img_norm_cfg', 'scene_token', 'gt_bboxes_3d','gt_labels_3d'))
+             meta_keys=('filename', 'ori_shape', 'img_shape', 'pad_shape', 'scale_factor', 'flip', 'box_mode_3d', 'box_type_3d', 'img_norm_cfg', 'scene_token', 'gt_bboxes_3d','gt_labels_3d', 'depths'))
 ]
 test_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
@@ -212,7 +254,7 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=batch_size,
-    workers_per_gpu=4,
+    workers_per_gpu=6,
     train=dict(
         type=dataset_type,
         data_root=data_root,
@@ -243,8 +285,7 @@ data = dict(
         pipeline=test_pipeline, 
         collect_keys=collect_keys + ['img', 'img_metas'], 
         queue_length=queue_length, 
-        corruption_root='/home/bo.yang5/other/Sparse4D-full2/data/robodrive-release',
-        ann_file='/home/bo.yang5/other/Sparse4D-full2/data/nuscenes_anno_pkls/robodrive_infos_temporal_test.pkl', 
+        ann_file=data_root + 'nuscenes2d_temporal_infos_val.pkl', 
         classes=class_names, 
         modality=input_modality),
 
@@ -273,12 +314,12 @@ lr_config = dict(
     )
 
 evaluation = dict(interval=num_iters_per_epoch*num_epochs, pipeline=test_pipeline)
+
 find_unused_parameters=False #### when use checkpoint, find_unused_parameters must be False
 checkpoint_config = dict(interval=num_iters_per_epoch, max_keep_ckpts=1)
 runner = dict(
     type='IterBasedRunner', max_iters=num_epochs * num_iters_per_epoch)
 load_from='./ckpts/eva02_L_coco_det_sys_o365_remapped.pth'
-resume_from=None
 
 corruptions = [
     "brightness",
