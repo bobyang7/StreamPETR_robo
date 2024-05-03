@@ -1,7 +1,6 @@
 # Data Preparation
 
-## Dataset
-**1. Download nuScenes**
+## 1. Download nuScenes Dataset
 
 Download the [nuScenes dataset](https://www.nuscenes.org/download) to `./data/nuscenes`.
 
@@ -15,7 +14,7 @@ python tools/create_data_nusc.py --root-path ./data/nuscenes --out-dir ./data/nu
 Using the above code will generate `nuscenes2d_infos_temporal_{train,val}.pkl`.
 We also privided the processed [train](https://github.com/exiawsh/storage/releases/download/v1.0/nuscenes2d_temporal_infos_train.pkl), [val](https://github.com/exiawsh/storage/releases/download/v1.0/nuscenes2d_temporal_infos_val.pkl) and [test](https://github.com/exiawsh/storage/releases/download/v1.0/nuscenes2d_temporal_infos_test.pkl) pkl.
 
-## Pretrained Weights
+## 3. Pretrained Weights
 
 Please download the pretrained [weights](https://github.com/exiawsh/storage/releases/download/v1.0/eva02_L_coco_det_sys_o365_remapped.pth) to ./ckpts. 
 
@@ -41,3 +40,7 @@ RoboRepDETR3D
 |   |   ├── nuscenes2d_temporal_infos_train.pkl
 |   |   ├── nuscenes2d_temporal_infos_val.pkl
 ```
+
+## 4. Download robodrive Dataset
+
+Download the [robodrive](https://github.com/robodrive-24/toolkit/tree/main/track-1#hotsprings-datasets) dataset
