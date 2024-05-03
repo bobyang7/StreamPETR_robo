@@ -64,6 +64,7 @@ class SparseHead(AnchorFreeHead):
                  match_costs=None,
                  transformer=None,
                  sync_cls_avg_factor=False,
+                 code_size=10,
                  code_weights=None,
                  bbox_coder=None,
                  loss_cls=dict(
@@ -93,8 +94,8 @@ class SparseHead(AnchorFreeHead):
         # NOTE here use `AnchorFreeHead` instead of `TransformerHead`,
         # since it brings inconvenience when the initialization of
         # `AnchorFreeHead` is called.
-        if 'code_size' in kwargs:
-            self.code_size = kwargs['code_size']
+        if code_size is not None:
+            self.code_size = code_size
         else:
             self.code_size = 10
         if code_weights is not None:

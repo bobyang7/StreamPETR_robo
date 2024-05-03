@@ -7,7 +7,7 @@ from mmdet.core.bbox.builder import BBOX_ASSIGNERS
 from mmdet.core.bbox.assigners import AssignResult
 from mmdet.core.bbox.assigners import BaseAssigner
 from mmdet.core.bbox.match_costs import build_match_cost
-from projects.mmdet3d_plugin.core.bbox.util import normalize_bbox
+from projects.mmdet3d_plugin.core.bbox.util import *
 
 try:
     from scipy.optimize import linear_sum_assignment
@@ -56,7 +56,13 @@ class HungarianAssigner3D(BaseAssigner):
         # classification and bboxcost.
         cls_cost = self.cls_cost(cls_pred, gt_labels)
         # regression L1 cost
-        normalized_gt_bboxes = normalize_bbox(gt_bboxes, self.pc_range)
+        if len(code_weights) == 10:
+            normalized_gt_bboxes = normalize_bbox(gt_bboxes, self.pc_range)
+        elif len(code_weights) == 11:
+            normalized_gt_bboxes = normalize_bbox_psc(gt_bboxes, self.pc_range)
+        elif len(code_weights) == 20:
+            normalized_gt_bboxes = normalize_bbox_bin(gt_bboxes, self.pc_range)
+
         if code_weights is not None:
             bbox_pred = bbox_pred * code_weights
             normalized_gt_bboxes = normalized_gt_bboxes * code_weights

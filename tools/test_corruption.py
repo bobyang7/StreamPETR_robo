@@ -150,10 +150,6 @@ def main():
                     _module_path = _module_path + '.' + m
                 print(_module_path)
                 plg_lib = importlib.import_module(_module_path)
-                
-
-
-
             else:
                 # import dir is the dirpath for the config file
                 _module_dir = os.path.dirname(args.config)
@@ -198,18 +194,6 @@ def main():
     if args.seed is not None:
         set_random_seed(args.seed, deterministic=args.deterministic)
 
-    # build the dataloader
-
-    dataset = build_dataset(cfg.data.test)
-    # data_loader = build_dataloader(
-    #     dataset,
-    #     samples_per_gpu=samples_per_gpu,
-    #     workers_per_gpu=cfg.data.workers_per_gpu,
-    #     dist=distributed,
-    #     shuffle=False,
-    #     nonshuffler_sampler=cfg.data.nonshuffler_sampler,
-    # )
-
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_model(cfg.model, test_cfg=cfg.get('test_cfg'))
@@ -242,18 +226,6 @@ def main():
             device_ids=[torch.cuda.current_device()],
             broadcast_buffers=False)
 
-    # build the dataloader
-
-    # dataset = build_dataset(cfg.data.test)
-    # data_loader = build_dataloader(
-    #     dataset,
-    #     samples_per_gpu=samples_per_gpu,
-    #     workers_per_gpu=cfg.data.workers_per_gpu,
-    #     dist=distributed,
-    #     shuffle=False,
-    #     nonshuffler_sampler=cfg.data.nonshuffler_sampler,
-    # )
-
     for corruption in cfg.corruptions:
         # build the dataloader
         cfg.data.test.corruption = corruption
@@ -282,20 +254,6 @@ def main():
             kwargs["jsonfile_prefix"] = osp.join(
                 "test", args.config.split("/")[-1].split(".")[-2], corruption
             )
-            # if args.show_only:
-            #     eval_kwargs = cfg.get("evaluation", {}).copy()
-            #     # hard-code way to remove EvalHook args
-            #     for key in [
-            #         "interval",
-            #         "tmpdir",
-            #         "start",
-            #         "gpu_collect",
-            #         "save_best",
-            #         "rule",
-            #     ]:
-            #         eval_kwargs.pop(key, None)
-            #     eval_kwargs.update(kwargs)
-            #     dataset.show(outputs, show=True, **eval_kwargs)
             if args.format_only:
                 dataset.format_results(outputs, **kwargs)
             if args.eval:
@@ -312,7 +270,7 @@ def main():
                     eval_kwargs.pop(key, None)
                 eval_kwargs.update(dict(metric=args.eval, **kwargs))
 
-                print(dataset.evaluate(outputs, **eval_kwargs))
+                print(dataset.evaluate_on_robo(outputs, **eval_kwargs))
 
 
 

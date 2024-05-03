@@ -542,15 +542,15 @@ class NuScenesDataset(Custom3DDataset):
         Returns:
             dict[str, float]: Results of each evaluation metric.
         """
-        # result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
-        # tmp_dir = None
+        result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+        tmp_dir = None
         
         # import json
         # json_file_path = "/home/bo.yang5/streampetr/val/work_dirs/stream_petr_r50_flash_704_bs2_seq_428q_nui_60e_val/Wed_Aug_30_04_22_24_2023/pts_bbox/results_nusc.json"
         # with open(json_file_path, "r") as json_file:
         #     result = json.load(json_file)
         #     result_files = {'pts_bbox': result}
-        result_files = {'pts_bbox': "/home/bo.yang5/streampetr/results_nusc.json"}
+        # result_files = {'pts_bbox': "/home/bo.yang5/streampetr/results_nusc.json"}
 
         if isinstance(result_files, dict):
             results_dict = dict()
@@ -567,6 +567,40 @@ class NuScenesDataset(Custom3DDataset):
         if show or out_dir:
             self.show(results, out_dir, show=show, pipeline=pipeline)
         return results_dict
+
+    def evaluate_on_robo(self,
+                    results,
+                    metric='bbox',
+                    logger=None,
+                    jsonfile_prefix=None,
+                    result_names=['pts_bbox'],
+                    show=False,
+                    out_dir=None,
+                    pipeline=None):
+            """Evaluation in nuScenes protocol.
+
+            Args:
+                results (list[dict]): Testing results of the dataset.
+                metric (str | list[str], optional): Metrics to be evaluated.
+                    Default: 'bbox'.
+                logger (logging.Logger | str, optional): Logger used for printing
+                    related information during evaluation. Default: None.
+                jsonfile_prefix (str, optional): The prefix of json files including
+                    the file path and the prefix of filename, e.g., "a/b/prefix".
+                    If not specified, a temp file will be created. Default: None.
+                show (bool, optional): Whether to visualize.
+                    Default: False.
+                out_dir (str, optional): Path to save the visualization results.
+                    Default: None.
+                pipeline (list[dict], optional): raw data loading for showing.
+                    Default: None.
+
+            Returns:
+                dict[str, float]: Results of each evaluation metric.
+            """
+            result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+            tmp_dir = None
+            
 
     def _build_default_pipeline(self):
         """Build the default pipeline for this dataset."""

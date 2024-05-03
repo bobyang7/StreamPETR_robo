@@ -65,6 +65,7 @@ class SparseHead_CUSTOM(AnchorFreeHead):
                  transformer=None,
                  sync_cls_avg_factor=False,
                  code_weights=None,
+                 code_size=10,
                  bbox_coder=None,
                  loss_cls=dict(
                      type='CrossEntropyLoss',
@@ -100,8 +101,8 @@ class SparseHead_CUSTOM(AnchorFreeHead):
         # NOTE here use `AnchorFreeHead` instead of `TransformerHead`,
         # since it brings inconvenience when the initialization of
         # `AnchorFreeHead` is called.
-        if 'code_size' in kwargs:
-            self.code_size = kwargs['code_size']
+        if code_size is not None:
+            self.code_size = code_size
         else:
             self.code_size = 11
         if code_weights is not None:
