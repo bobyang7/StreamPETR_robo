@@ -7,3 +7,6 @@ from .sparse_head_dep import SparseHeadDepth
 from .yolox_head_dep import YOLOXHeadCustomDepth
 from .yolox_head_dep_custom import YOLOXHeadCustomDepth_CUSTOM
 from .sparse_head_custom import SparseHead_CUSTOM
+
+from .focal_angle_head_v1 import FocalAngleHead_V1
+from .focal_angle_head_v2 import FocalAngleHead_V2
