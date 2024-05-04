@@ -661,10 +661,13 @@ class FocalAngleHead_V1(AnchorFreeHead):
 
         # prepare for the tgt and query_pos using mln.
         tgt, query_pos, reference_points, temp_memory, temp_pos, rec_ego_pose = self.temporal_alignment(query_pos, tgt, reference_points)
-        outs_dec = self.transformer(tgt, query_pos, feat_flatten, spatial_flatten, level_start_index, temp_memory, 
+        
+        if self.training:
+            outs_dec = self.transformer(tgt, query_pos, feat_flatten, spatial_flatten, level_start_index, temp_memory, 
                                     temp_pos, attn_mask, reference_points, self.pc_range, data, [i[0] for i in img_metas])
-        # outs_dec = self.transformer(tgt, query_pos, feat_flatten, spatial_flatten, level_start_index, temp_memory, 
-        #                             temp_pos, attn_mask, reference_points, self.pc_range, data, img_metas)
+        else:
+            outs_dec = self.transformer(tgt, query_pos, feat_flatten, spatial_flatten, level_start_index, temp_memory, 
+                                    temp_pos, attn_mask, reference_points, self.pc_range, data, img_metas)
         outs_dec = torch.nan_to_num(outs_dec)
         outputs_classes = []
         outputs_coords = []
