@@ -124,7 +124,7 @@ def main():
 
                 #将plugin_dir加入到系统路径中
                 import sys
-                sys.path.append("/home/bo.yang5/streampetr/")
+                sys.path.append("./")
                 plg_lib = importlib.import_module(_module_path)
 
             else:

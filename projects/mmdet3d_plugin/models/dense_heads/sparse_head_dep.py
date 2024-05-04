@@ -690,14 +690,14 @@ class SparseHeadDepth(AnchorFreeHead):
                 'all_cls_scores': outputs_class,
                 'all_bbox_preds': outputs_coord,
                 'dn_mask_dict':mask_dict,
-                'reference_points2d': reference_points2d,
+                # 'reference_points2d': reference_points2d,
             }
         else:
             outs = {
                 'all_cls_scores': all_cls_scores,
                 'all_bbox_preds': all_bbox_preds,
                 'dn_mask_dict':None,
-                'reference_points2d': reference_points2d,
+                # 'reference_points2d': reference_points2d,
             }
 
         return outs

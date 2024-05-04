@@ -70,7 +70,7 @@ class DepthPredictor(nn.Module):
         src_8 = self.downsample(feature[0])
         src = (src_8 + src_16 + src_32) / 3
         '''
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if self.multi_level_fusion:
            # input multi-level feature
            src_8 = self.proj_8(feature[0].flatten(0, 1))

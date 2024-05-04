@@ -129,7 +129,7 @@ model = dict(
         with_ego_pos=True,
         match_with_velo=False,
         # ---------------
-        add_query_from_2d=True,
+        add_query_from_2d=False,
         depthnet_config=depthnet_config,
         train_use_gt_depth=True,
         return_bbox2d_scores=True,
