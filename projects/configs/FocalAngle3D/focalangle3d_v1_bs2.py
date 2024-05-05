@@ -21,7 +21,7 @@ class_names = [
 ]
 
 num_gpus = 8
-batch_size = 1
+batch_size = 2
 num_iters_per_epoch = 28130 // (num_gpus * batch_size)
 num_epochs = 24
 strides=[4, 8, 16, 32]
