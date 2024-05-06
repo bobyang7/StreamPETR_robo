@@ -59,6 +59,17 @@ sim_fpn=dict(
         out_indices=[2, 3, 4, 5],
         )
 
+row_encode = "ori"
+if row_encode == "ori":
+    code_size = 10
+    code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+elif row_encode == "psc":
+    code_size = 11
+    code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+elif row_encode == "bin":
+    code_size = 20
+    code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
 model = dict(
     type='FocalAngle3D_V2',
     num_frame_head_grads=num_frame_losses,
@@ -116,13 +127,13 @@ model = dict(
         with_ego_pos=True,
         match_with_velo=False,
         # ---------------
-        add_query_from_2d=True,
+        add_query_from_2d=False,
         depthnet_config=depthnet_config,
         train_use_gt_depth=True,
         return_bbox2d_scores=True,
         return_context_feat=True,
-        # ------------------
-        code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        code_weights = code_weights,
+        code_size=code_size,
         transformer=dict(
             type='Detr3DTransformer',
             decoder=dict(
@@ -275,8 +286,8 @@ data = dict(
         pipeline=test_pipeline, 
         collect_keys=collect_keys + ['img', 'img_metas'], 
         queue_length=queue_length, 
-        corruption_root='/mnt/auto-labeling/jiangshengyin/project/StreamPETR_robo-master/data/nuscenes',
-        ann_file='/mnt/auto-labeling/jiangshengyin/project/StreamPETR_robo-master/data/nuscenes/robodrive-v1.0-test/robodrive_infos_temporal_test.pkl', 
+        corruption_root='/home/bo.yang5/other/Sparse4D-full2/data/robodrive-release',
+        ann_file='/home/bo.yang5/other/Sparse4D-full2/data/nuscenes_anno_pkls/robodrive_infos_temporal_test.pkl', 
         classes=class_names, 
         modality=input_modality),
 

@@ -83,6 +83,7 @@ class FocalAngleHead_V1(AnchorFreeHead):
                  transformer=None,
                  sync_cls_avg_factor=False,
                  code_weights=None,
+                 code_size=10,
                  match_costs=None,
                  bbox_coder=None,
                  loss_cls=dict(
@@ -108,10 +109,10 @@ class FocalAngleHead_V1(AnchorFreeHead):
         # NOTE here use `AnchorFreeHead` instead of `TransformerHead`,
         # since it brings inconvenience when the initialization of
         # `AnchorFreeHead` is called.
-        if 'code_size' in kwargs:
-            self.code_size = kwargs['code_size']
+        if code_size is not None:
+            self.code_size = code_size
         else:
-            self.code_size = 10
+            self.code_size = 11
         if code_weights is not None:
             self.code_weights = code_weights
         else:

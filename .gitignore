@@ -174,3 +174,4 @@ StreamPETR-new/
 pred*.json
 Note*/
 test_psc.py
+test_bin*

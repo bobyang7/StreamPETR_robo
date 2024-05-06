@@ -28,13 +28,29 @@ num_epochs = 24
 queue_length = 1
 num_frame_losses = 1
 collect_keys=['lidar2img', 'intrinsics', 'extrinsics','timestamp', 'img_timestamp', 'ego_pose', 'ego_pose_inv']
-depthnet_config = {'type': 0, 'hidden_dim': 256, 'num_depth_bins': 50, 'depth_min': 1e-1, 'depth_max': 110, 'stride': 8}
 input_modality = dict(
     use_lidar=False,
     use_camera=True,
     use_radar=False,
     use_map=False,
     use_external=True)
+
+strides=[4, 8, 16, 32]
+depthnet_config=dict(
+            embed_dims=256, 
+            num_depth_layers=4, 
+            equal_focal=100, 
+            max_depth=60,
+            loss_weight=0.2,
+            strides=strides,
+            depth_channels=120, #(grid_config['depth'][1]-grid_config['depth'][0])//grid_config['depth'][2]
+            grid_config=dict(
+                    x=[-40, 40, 0.8],
+                    y=[-40, 40, 0.8],
+                    z=[-1, 5.4, 0.8],
+                    depth=[1.0, 60.0, 0.5],),
+)
+
 
 sim_fpn=dict(
         scale_factors=[4, 2, 1, 0.5],
@@ -43,19 +59,8 @@ sim_fpn=dict(
         out_indices=[2, 3, 4, 5],
         )
 
-row_encode = "ori"
-if row_encode == "ori":
-    code_size = 10
-    code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-elif row_encode == "psc":
-    code_size = 11
-    code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-elif row_encode == "bin":
-    code_size = 20
-    code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-
 model = dict(
-    type='RepDetr3DDepth',
+    type='FocalAngle3D_V2',
     num_frame_head_grads=num_frame_losses,
     num_frame_backbone_grads=num_frame_losses,
     num_frame_losses=num_frame_losses,
@@ -83,24 +88,20 @@ model = dict(
         flash_attn=True,
     ),
     img_roi_head=dict(
-        type='YOLOXHeadCustomDepth',
+        type='YOLOXHead_Depth_v2',
         num_classes=10,
         in_channels=256,
-        strides=[4, 8, 16, 32],
+        strides=strides,
         train_cfg=dict(assigner=dict(type='SimOTAAssigner', center_radius=2.5)),
         test_cfg=dict(score_thr=0.01, nms=dict(type='nms', iou_threshold=0.65)),
         pred_with_depth=True,
+        topk_proposal=30,
         depthnet_config=depthnet_config,
-        reg_depth_level='p3',
-        pred_depth_var=False,    # note 2d depth uncertainty
-        loss_depth2d=dict(type='L1Loss', loss_weight=1.0),
-        sample_with_score=True,  # note threshold
-        threshold_score=0.1,
-        topk_proposal=None,
+        loss_depth_weight=1.0,
         return_context_feat=True,
-    ),
+        ),
     pts_bbox_head=dict(
-        type='SparseHeadDepth',
+        type='FocalAngleHead_V2',
         num_classes=10,
         in_channels=256,
         num_query=644,
@@ -111,21 +112,17 @@ model = dict(
         noise_scale = 1.0, 
         dn_weight= 1.0, ##dn loss weight
         split = 0.75, ###positive rate
-        offset=0.5,
-        offset_p=0.0,
-        num_smp_per_gt=3,
         with_dn=True,
         with_ego_pos=True,
-        add_query_from_2d=False,
-        pred_box_var=False,  # note add box uncertainty
+        match_with_velo=False,
+        # ---------------
+        add_query_from_2d=True,
         depthnet_config=depthnet_config,
         train_use_gt_depth=True,
-        add_multi_depth_proposal=True,
-        multi_depth_config={'topk': 1, 'range_min': 30,},  # 'bin_unit': 1, 'step_num': 4,
         return_bbox2d_scores=True,
         return_context_feat=True,
-        code_size = code_size,
-        code_weights = code_weights,
+        # ------------------
+        code_weights = [2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
         transformer=dict(
             type='Detr3DTransformer',
             decoder=dict(
@@ -203,11 +200,22 @@ ida_aug_conf = {
     }
 train_pipeline = [
     dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+    dict(
+        type="LoadPointsFromFile",
+        coord_type="LIDAR",
+        load_dim=5,
+        use_dim=5,
+        file_client_args=file_client_args,
+    ),
     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True, with_bbox=True,
         with_label=True, with_bbox_depth=True),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
     dict(type='ResizeCropFlipRotImage', data_aug_conf = ida_aug_conf, training=True),
+    dict(
+        type="MultiScaleDepthMapGenerator",
+        downsample=depthnet_config['strides'],
+    ),
     dict(type='GlobalRotScaleTransImage',
             rot_range=[-0.3925, 0.3925],
             translation_std=[0, 0, 0],
@@ -262,7 +270,15 @@ data = dict(
         filter_empty_gt=False,
         box_type_3d='LiDAR'),
     val=dict(type=dataset_type, pipeline=test_pipeline, collect_keys=collect_keys + ['img', 'img_metas'], queue_length=queue_length, ann_file=data_root + 'nuscenes2d_temporal_infos_val.pkl', classes=class_names, modality=input_modality),
-    test=dict(type=dataset_type, pipeline=test_pipeline, collect_keys=collect_keys + ['img', 'img_metas'], queue_length=queue_length, ann_file=data_root + 'nuscenes2d_temporal_infos_val.pkl', classes=class_names, modality=input_modality),
+    test=dict(
+        type=dataset_type, 
+        pipeline=test_pipeline, 
+        collect_keys=collect_keys + ['img', 'img_metas'], 
+        queue_length=queue_length, 
+        corruption_root='/mnt/auto-labeling/jiangshengyin/project/StreamPETR_robo-master/data/nuscenes',
+        ann_file='/mnt/auto-labeling/jiangshengyin/project/StreamPETR_robo-master/data/nuscenes/robodrive-v1.0-test/robodrive_infos_temporal_test.pkl', 
+        classes=class_names, 
+        modality=input_modality),
 
     shuffler_sampler=dict(type='InfiniteGroupEachSampleInBatchSampler'),
     nonshuffler_sampler=dict(type='DistributedSampler')
@@ -289,13 +305,13 @@ lr_config = dict(
     )
 
 evaluation = dict(interval=num_iters_per_epoch*num_epochs, pipeline=test_pipeline)
+
 find_unused_parameters=False #### when use checkpoint, find_unused_parameters must be False
 checkpoint_config = dict(interval=num_iters_per_epoch, max_keep_ckpts=1)
 runner = dict(
     type='IterBasedRunner', max_iters=num_epochs * num_iters_per_epoch)
 load_from='./ckpts/eva02_L_coco_det_sys_o365_remapped.pth'
 resume_from=None
-
 corruptions = [
     "brightness",
     "dark",

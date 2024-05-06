@@ -19,9 +19,8 @@ from mmdet3d.datasets import build_dataset
 
 #将plugin_dir加入到系统路径中
 import sys
-sys.path.append("/home/bo.yang5/streampetr/")
+sys.path.append("/home/bo.yang5/submit/StreamPETR_robo/")
                 
-
 from projects.mmdet3d_plugin.datasets.builder import build_dataloader
 from mmdet3d.models import build_model
 from mmdet.apis import set_random_seed
